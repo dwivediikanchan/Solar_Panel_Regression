@@ -1,41 +1,33 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Lasso
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import pickle
 
-# Title
-st.title("🌞 Solar Power Prediction App")
+# Load model
+with open("x_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
-# Upload CSV
-uploaded_file = st.file_uploader("Upload your dataset", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    st.write("### Dataset Preview:", df.head())
+st.title("🌞 Solar Power Generation Prediction App")
+st.write("Enter the input values to predict power generation.")
 
-    X = df.drop(columns=["power-generated"])
-    y = df["power-generated"]
+# Example input fields (replace with your dataset’s features)
+distance_to_solar_noon = st.number_input("Distance to Solar Noon", value=1.0)
+temperature = st.number_input("Temperature (°C)", value=25.0)
+wind_direction = st.number_input("Wind Direction (degrees)", value=180.0)
+wind_speed = st.number_input("Wind Speed (m/s)", value=3.0)
+sky_cover = st.number_input("Sky Cover (%)", value=50.0)
+visibility = st.number_input("Visibility (km)", value=10.0)
+humidity = st.number_input("Humidity (%)", value=60.0)
+avg_wind_speed = st.number_input("Average Wind Speed (period)", value=3.0)
+avg_pressure = st.number_input("Average Pressure (period)", value=1013.0)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+if st.button("Predict"):
+    # Arrange inputs as a DataFrame for the model
+    input_data = pd.DataFrame([[distance_to_solar_noon, temperature, wind_direction,
+                                 wind_speed, sky_cover, visibility, humidity,
+                                 avg_wind_speed, avg_pressure]],
+                               columns=['distance-to-solar-noon', 'temperature', 'wind-direction',
+                                        'wind-speed', 'sky-cover', 'visibility', 'humidity',
+                                        'average-wind-speed-(period)', 'average-pressure-(period)'])
 
-    # Train Model
-    model = Lasso(alpha=0.1)
-    model.fit(X_train, y_train)
-
-    # Evaluate
-    y_pred = model.predict(X_test)
-
-    st.write("### Model Performance")
-    st.write("MAE:", mean_absolute_error(y_test, y_pred))
-    st.write("MSE:", mean_squared_error(y_test, y_pred))
-    st.write("R2 Score:", r2_score(y_test, y_pred))
-
-    # Prediction for user input
-    st.write("### Make a Prediction")
-    input_data = {}
-    for col in X.columns:
-        input_data[col] = st.number_input(f"Enter {col}", float(df[col].min()), float(df[col].max()), float(df[col].mean()))
-    input_df = pd.DataFrame([input_data])
-    prediction = model.predict(input_df)[0]
-    st.success(f"⚡ Predicted Power: {prediction:.2f}")
+    prediction = model.predict(input_data)[0]
+    st.success(f"Predicted Power Generated: {prediction:.2f} kW")
